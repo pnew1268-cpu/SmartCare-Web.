@@ -44,28 +44,38 @@ app.use('/api/messages',      require('./routes/messages'));
 app.use('/api/notifications', require('./routes/notifications'));
 
 // ────────────────────────────────────────────────
-// Static files
-// ────────────────────────────────────────────────
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use(express.static(path.join(__dirname)));
-
-// ────────────────────────────────────────────────
 // SPA fallback & API 404
 // ────────────────────────────────────────────────
 
-// 1. If it's an API request that didn't match above, always return JSON 404
+// 1. API 404 — Handle unmatched /api requests BEFORE static/SPA fallback
 app.use('/api', (req, res) => {
-    res.status(404).json({ msg: 'API endpoint not found' });
+    res.status(404).json({ 
+        msg: 'API endpoint not found',
+        url: req.originalUrl,
+        method: req.method
+    });
 });
 
-// 2. For everything else, if it's a GET request, serve index.html (SPA)
-app.get('*', (req, res) => {
+// 2. Static files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Specific 404 for missing uploads to prevent SPA fallback
+app.use('/uploads', (req, res) => {
+    res.status(404).send('File Not Found');
+});
+app.use(express.static(path.join(__dirname)));
+
+// 3. SPA Fallback — ONLY for GET requests that are NOT for /api
+app.get('*', (req, res, next) => {
+    if (req.url.startsWith('/api')) return next();
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// 3. For non-GET non-API requests, return a generic error
+// 4. Generic 404 handler for non-GET requests or fallthrough
 app.use((req, res) => {
-    res.status(404).send('Not Found');
+    if (req.originalUrl.startsWith('/api') || req.method !== 'GET') {
+        return res.status(404).json({ msg: 'Not Found' });
+    }
+    res.status(404).sendFile(path.join(__dirname, 'index.html')); // Fallback to SPA even on 404 if it's a GET
 });
 
 // ────────────────────────────────────────────────
