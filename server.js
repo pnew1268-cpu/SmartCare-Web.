@@ -4,7 +4,11 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+
+// prefer explicit default port for clarity (overrides environment when unset)
+const DEFAULT_PORT = 3000;
+const PORT = process.env.PORT || DEFAULT_PORT;
+
 const sequelize = require('./db');
 
 // ────────────────────────────────────────────────
@@ -25,6 +29,14 @@ app.options('*', cors(corsOptions)); // Handle all pre-flight OPTIONS requests
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// static assets from the public directory (required by user request)
+// this must come before any SPA/fallback logic below
+app.use(express.static(path.join(__dirname, 'public')));
+
+// NOTE: older code also served the entire project root; leave it after
+// uploads/handling just in case other files depend on it.
+
+
 // ────────────────────────────────────────────────
 // Request logger
 // ────────────────────────────────────────────────
@@ -36,12 +48,30 @@ app.use((req, res, next) => {
 // ────────────────────────────────────────────────
 // API Routes — registered BEFORE static serving
 // ────────────────────────────────────────────────
+// mount individual routers at both their normal prefixes and directly under /api
 app.use('/api/auth',     require('./routes/auth'));
 app.use('/api/users',    require('./routes/users'));
+
+// expose same handlers at root to allow paths like /api/login, /api/profile
+app.use('/api', require('./routes/auth'));
+app.use('/api', require('./routes/users'));
+
 app.use('/api/clinical', require('./routes/clinical'));
 app.use('/api/admin',    require('./routes/admin'));
 app.use('/api/messages',      require('./routes/messages'));
 app.use('/api/notifications', require('./routes/notifications'));
+
+// informational /api root to avoid plain 404 when user visits it
+app.get('/api', (req, res) => {
+    res.json({
+        msg: 'MedRecord API root. Try /login, /register, /profile, /users/...',
+        available: [
+            '/api/login', '/api/register', '/api/profile',
+            '/api/users/doctors', '/api/clinical/prescriptions',
+            '/api/messages', '/api/notifications'
+        ]
+    });
+});
 
 // Ping endpoint to verify server status
 app.get('/api/ping', (req, res) => res.json({ status: 'ok', time: new Date() }));
@@ -65,6 +95,9 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/uploads', (req, res) => {
     res.status(404).send('File Not Found');
 });
+
+// NOTE: A catch‑all static serve of the project root was originally here.
+// Keep it for compatibility but it comes _after_ public/ so public files win.
 app.use(express.static(path.join(__dirname)));
 
 // 3. SPA Fallback — ONLY for GET requests that are NOT for /api
@@ -109,10 +142,19 @@ sequelize.authenticate()
             console.log('[SEED] Created test patient: 12345678901234 / test123');
         }
 
-        app.listen(PORT, '0.0.0.0', () => {
+        // start listening and keep a handle so we can catch errors
+        const server = app.listen(PORT, '0.0.0.0', () => {
             console.log(`✅  Server running on http://localhost:${PORT}`);
             console.log(`   Internal Address: http://0.0.0.0:${PORT}`);
             console.log(`   Database: SQLite (${process.env.NODE_ENV || 'development'})`);
+        });
+
+        server.on('error', err => {
+            if (err.code === 'EADDRINUSE') {
+                console.error(`❌  Port ${PORT} already in use. Is another instance running?`);
+                process.exit(1);
+            }
+            console.error('❌  Server error:', err);
         });
     })
     .catch(err => {

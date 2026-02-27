@@ -114,11 +114,11 @@ const app = {
         // Handle absolute vs relative URLs (for local file display support)
         let baseUrl = '/api';
         if (window.location.protocol === 'file:') {
-            baseUrl = 'http://127.0.0.1:5000/api';
+            baseUrl = 'http://127.0.0.1:3000/api';
         } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            if (window.location.port !== '5000') baseUrl = `http://${window.location.hostname}:5000/api`;
-        } else if (window.location.port && window.location.port !== '5000') {
-            baseUrl = `${window.location.protocol}//${window.location.hostname}:5000/api`;
+            if (window.location.port !== '3000') baseUrl = `http://${window.location.hostname}:3000/api`;
+        } else if (window.location.port && window.location.port !== '3000') {
+            baseUrl = `${window.location.protocol}//${window.location.hostname}:3000/api`;
         }
         
         const targetUrl = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
@@ -174,27 +174,27 @@ const app = {
         console.log(`[DEMO-API] ${method} ${endpoint}`, body);
         
         // 1. AUTH
-        if (endpoint.includes('/auth/login')) {
+        if (endpoint.includes('/login')) {
             const user = this.mockData.users[body.loginId] || this.mockData.users['12345678901234'];
             return { token: 'demo-token', user: { ...user } };
         }
-        if (endpoint.includes('/auth/register')) {
+        if (endpoint.includes('/register')) {
             const newUser = { ...body, roles: ['patient'], activeRole: 'patient' };
             this.mockData.users[body.id] = newUser;
             return { msg: 'Demo registration successful', phone: body.phone };
         }
 
         // 2. USER PROFILE & SEARCH
-        if (endpoint.includes('/users/doctors')) {
+        if (endpoint.includes('/doctors')) {
             return Object.values(this.mockData.users).filter(u => u.roles.includes('doctor'));
         }
-        if (endpoint.includes('/users/pharmacies')) {
+        if (endpoint.includes('/pharmacies')) {
             return [
                 { id: 1, name: 'Demo Pharmacy Alpha', address: '45 Nile St, Cairo', phone: '01000000001', city: 'Cairo' },
                 { id: 2, name: 'Demo Pharmacy Beta', address: '88 Horus Ave, Giza', phone: '01000000002', city: 'Giza' }
             ];
         }
-        if (endpoint.includes('/users/profile')) {
+        if (endpoint.includes('/profile')) {
             const userId = (endpoint.includes('?id=')) ? endpoint.split('id=')[1] : this.user.id;
             const u = this.mockData.users[userId];
             if (!u) return { msg: 'User not found' };
@@ -251,11 +251,11 @@ const app = {
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
         let baseUrl = '/api';
-        if (window.location.protocol === 'file:') baseUrl = 'http://127.0.0.1:5000/api';
+        if (window.location.protocol === 'file:') baseUrl = 'http://127.0.0.1:3000/api';
         else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            if (window.location.port !== '5000') baseUrl = `http://${window.location.hostname}:5000/api`;
-        } else if (window.location.port && window.location.port !== '5000') {
-            baseUrl = `${window.location.protocol}//${window.location.hostname}:5000/api`;
+            if (window.location.port !== '3000') baseUrl = `http://${window.location.hostname}:3000/api`;
+        } else if (window.location.port && window.location.port !== '3000') {
+            baseUrl = `${window.location.protocol}//${window.location.hostname}:3000/api`;
         }
         
         const targetUrl = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
@@ -360,7 +360,7 @@ const app = {
             const email = document.getElementById('profEmail').value;
             const city = document.getElementById('profCity').value;
             try {
-                const updated = await app.api('/users/profile', 'PUT', { email, city });
+                const updated = await app.api('/profile', 'PUT', { email, city });
                 app.user = updated;
                 app.ui.toast("Profile updated", "success");
             } catch (err) { app.ui.toast("Failed to save", "error"); }
@@ -370,7 +370,7 @@ const app = {
             const clinicAddress = document.getElementById('profClinic').value;
             const contactInfo = document.getElementById('profContact').value;
             try {
-                const updated = await app.api('/users/profile', 'PUT', { specialization, clinicAddress, contactInfo });
+                const updated = await app.api('/profile', 'PUT', { specialization, clinicAddress, contactInfo });
                 app.user = updated;
                 app.ui.toast("Professional info updated", "success");
             } catch (err) { app.ui.toast("Failed to save", "error"); }
@@ -396,7 +396,7 @@ const app = {
                     updates.certificatesUrls = [data.url];
                 }
                 
-                await app.api('/users/profile', 'PUT', updates);
+                await app.api('/profile', 'PUT', updates);
                 app.ui.toast("Documents synced", "success");
                 app.ui.renderProfile();
             } catch (err) { }
@@ -405,20 +405,23 @@ const app = {
 
     auth: {
         init() {
-            const token = localStorage.getItem('mr_token');
-            if (token) {
-                // Use mock API to restore session silently
-                app.api('/users/profile')
-                    .then(user => { app.user = user; app.ui.showApp(); })
-                    .catch(() => {
-                        localStorage.removeItem('mr_token');
-                        app._db.set('session', null);
-                        app.user = null;
-                        app.ui.showLogin();
-                    });
-                return;
+            // PUBLIC ACCESS MODE — no authentication required
+            // Set a default guest user so the app loads without login
+            if (!app.user) {
+                app.user = {
+                    id: 'guest_user',
+                    name: 'Welcome Guest',
+                    roles: ['patient'],
+                    activeRole: 'patient',
+                    phone: '01000000000',
+                    email: 'guest@medrecord.local',
+                    city: 'Cairo',
+                    governorate: 'Cairo'
+                };
             }
-            app.ui.showLogin();
+            
+            // Load app directly without login screen
+            app.ui.showApp();
         },
 
         async register(e) {
@@ -438,7 +441,7 @@ const app = {
 
             try {
                 const body = { id, name, phone, email, password, city, governorate: gov };
-                await app.api('/auth/register', 'POST', body);
+                await app.api('/register', 'POST', body);
                 app.ui.toast("Registered! Please login", "success");
                 app.ui.showLogin();
             } catch (err) {
@@ -457,7 +460,7 @@ const app = {
             }
 
             try {
-                const res = await app.api('/auth/login', 'POST', { loginId, password });
+                const res = await app.api('/login', 'POST', { loginId, password });
                 localStorage.setItem('mr_token', res.token);
                 app.user = res.user;
                 app.ui.toast('Welcome back, ' + res.user.name + '!', 'success');
@@ -468,8 +471,28 @@ const app = {
         logout() {
             localStorage.removeItem('mr_token');
             if (app.ui.notifInterval) clearInterval(app.ui.notifInterval);
+            
+            // Reset to guest user for public access
+            app.user = {
+                id: 'guest_user',
+                name: 'Welcome Guest',
+                roles: ['patient'],
+                activeRole: 'patient',
+                phone: '01000000000',
+                email: 'guest@medrecord.local',
+                city: 'Cairo',
+                governorate: 'Cairo'
+            };
+            
+            app.ui.showApp();
+            app.ui.toast('You have been logged out. Browsing as guest.', 'info');
+        },
+
+        // Allow users to switch to login mode from demo/public browsing
+        switchToLogin() {
+            if (app.ui.notifInterval) clearInterval(app.ui.notifInterval);
             app.user = null;
-            location.reload();
+            app.ui.showLogin();
         }
     },
 
@@ -825,7 +848,7 @@ const app = {
 
         async showAptBooking() {
             try {
-                const docs = await app.api('/users/doctors');
+                const docs = await app.api('/doctors');
                 const html = `
                     <div class="card" style="max-width:500px; margin: 40px auto;">
                         <div class="card-header"><h2>${app.translations[app.lang].book_apt}</h2></div>
@@ -867,7 +890,7 @@ const app = {
             }
 
             try {
-                const partner = await app.api(`/users/profile?id=${partnerId}`); 
+                const partner = await app.api(`/profile?id=${partnerId}`); 
                 const html = `
                     <div class="card" style="height: calc(100vh - 150px); display:flex; flex-direction:column; padding:0; overflow:hidden;">
                         <div class="card-header" style="padding: 15px 24px; background: white; margin:0;">
@@ -1049,7 +1072,7 @@ const app = {
             formData.append('file', fileInput.files[0]);
             try {
                 const data = await app.apiUpload('/users/upload', formData);
-                await app.api('/users/apply', 'POST', { docUrl: data.url });
+                await app.api('/apply', 'POST', { docUrl: data.url });
                 app.ui.toast("Application submitted", "success");
                 app.ui.renderPatientDashboard();
             } catch (err) {}
@@ -1100,7 +1123,7 @@ const app = {
         async searchPatient() {
             const id = document.getElementById('patientSearchInput').value;
             try {
-                const p = await app.api(`/users/profile?id=${id}`);
+                const p = await app.api(`/profile?id=${id}`);
                 app.currentPatient = p;
                 app.ui.renderDoctorWorkspace();
             } catch (err) {
