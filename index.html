@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>MedRecord | Professional Healthcare System</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- Auth Section -->
+    <div id="authContainer" class="auth-container">
+        <div class="auth-box glass-effect">
+            <div class="logo center mb-4" style="font-size: 28px;">
+                <i class="fa-solid fa-heart-pulse" style="font-size: 32px; color: var(--primary);"></i>
+                <span style="font-weight: 800;">MedRecord</span>
+            </div>
+            
+            <form id="loginForm" class="auth-form" onsubmit="app.auth.login(event)">
+                <h2 data-i18n="login_title">Welcome Back</h2>
+                <div class="form-group">
+                    <label data-i18n="login_id_label">Phone Number or National ID</label>
+                    <input type="text" id="loginId" required placeholder="01XXXXXXXXX">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="password">Password</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn primary-btn full-width" data-i18n="login_btn">Login</button>
+                <div class="auth-switch">
+                    <span data-i18n="no_account">Don't have an account?</span> 
+                    <a href="#" onclick="app.ui.showRegister()" data-i18n="register_link">Register here</a>
+                </div>
+            </form>
+
+            <form id="registerForm" class="auth-form hidden" onsubmit="app.auth.register(event)">
+                <h2 data-i18n="register_title">Create Account</h2>
+                <div class="form-group">
+                    <label data-i18n="national_id">National ID</label>
+                    <input type="text" id="regId" required placeholder="2XXXXXXXXXXXXX">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="full_name">Full Name</label>
+                    <input type="text" id="regName" required placeholder="Full name">
+                </div>
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label data-i18n="phone">Phone Number</label>
+                        <input type="tel" id="regPhone" required placeholder="01XXXXXXXXX">
+                    </div>
+                    <div class="form-group half">
+                        <label data-i18n="email">Email</label>
+                        <input type="email" id="regEmail" placeholder="optional@email.com">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="password">Password</label>
+                    <input type="password" id="regPassword" required placeholder="••••••••" minlength="8">
+                    <small style="font-size: 10px; color: var(--text-muted);">Min 8 characters, letters & numbers</small>
+                </div>
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label>City</label>
+                        <input type="text" id="regCity" placeholder="City">
+                    </div>
+                    <div class="form-group half">
+                        <label>Governorate *</label>
+                        <select id="regGov" class="form-select" required>
+                            <option value="" disabled selected>Select Governorate...</option>
+                            <option value="Cairo">Cairo</option>
+                            <option value="Giza">Giza</option>
+                            <option value="Alexandria">Alexandria</option>
+                            <option value="Dakahlia">Dakahlia</option>
+                            <option value="Red Sea">Red Sea</option>
+                            <option value="Beheira">Beheira</option>
+                            <option value="Fayoum">Fayoum</option>
+                            <option value="Gharbia">Gharbia</option>
+                            <option value="Ismailia">Ismailia</option>
+                            <option value="Menofia">Menofia</option>
+                            <option value="Minya">Minya</option>
+                            <option value="Qalyubia">Qalyubia</option>
+                            <option value="New Valley">New Valley</option>
+                            <option value="Suez">Suez</option>
+                            <option value="Aswan">Aswan</option>
+                            <option value="Assiut">Assiut</option>
+                            <option value="Beni Suef">Beni Suef</option>
+                            <option value="Port Said">Port Said</option>
+                            <option value="Damietta">Damietta</option>
+                            <option value="Sharkia">Sharkia</option>
+                            <option value="South Sinai">South Sinai</option>
+                            <option value="Kafr El Sheikh">Kafr El Sheikh</option>
+                            <option value="Matrouh">Matrouh</option>
+                            <option value="Luxor">Luxor</option>
+                            <option value="Qena">Qena</option>
+                            <option value="North Sinai">North Sinai</option>
+                            <option value="Sohag">Sohag</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn primary-btn full-width" data-i18n="register_btn">Register</button>
+                
+                <div class="auth-switch">
+                    <span data-i18n="has_account">Already have an account?</span> 
+                    <a href="#" onclick="app.ui.showLogin()" data-i18n="login_link">Login here</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- App Section -->
+    <div id="appContainer" class="app-container hidden">
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="app.ui.closeSidebar()"></div>
+
+        <aside class="sidebar" id="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-heart-pulse"></i>
+                <span style="font-weight: 800;">MedRecord</span>
+            </div>
+            <nav class="nav-menu" id="navMenu"></nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header glass-effect">
+                <div class="header-left">
+                    <button class="hamburger" id="hamburgerBtn" onclick="app.ui.toggleSidebar()" aria-label="Menu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="search-bar hidden" id="doctorSearch">
+                        <i class="fa-solid fa-search"></i>
+                        <input type="text" id="patientSearchInput" data-i18n-prop="placeholder" data-i18n="search_patient_placeholder" placeholder="Enter Patient ID...">
+                        <button class="btn primary-btn" onclick="app.doctor.searchPatient()" data-i18n="search_btn">Search</button>
+                    </div>
+
+                    <div class="search-bar hidden" id="patientDoctorSelect">
+                        <i class="fa-solid fa-user-doctor"></i>
+                        <input type="text" id="doctorSearchInput" data-i18n-prop="placeholder" data-i18n="search_doc_placeholder" placeholder="Find a Doctor...">
+                        <button class="btn primary-btn" onclick="app.patient.searchDoctor()" data-i18n="search_btn">Search</button>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <div id="notificationArea" class="avatar-container small" style="margin-right: 12px; position:relative;" onclick="app.ui.toggleNotifs()">
+                        <i class="fa-solid fa-bell" style="font-size: 20px; color: var(--text-muted);"></i>
+                        <span id="notifBadge" class="notif-badge hidden">0</span>
+                        
+                        <div id="notifDropdown" class="card glass hidden" style="position:absolute; top:50px; right:0; width:320px; z-index:1000; padding:12px;">
+                            <h3 style="font-size:14px; margin-bottom:12px;" data-i18n="notifications">Notifications</h3>
+                            <div id="notifList" style="max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
+                                <p style="text-align:center; padding:20px; font-size:12px; color:var(--text-muted);" data-i18n="no_notifs">No new notifications</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="roleSwitcher" class="hidden" style="margin-right: 12px;">
+                        <button class="btn secondary-btn small" onclick="app.ui.toggleRoleSwitch()">
+                            <i class="fa-solid fa-repeat"></i> <span id="currentRoleLabel">Patient</span>
+                        </button>
+                    </div>
+                    
+                    <button id="langToggle" class="btn text-btn" onclick="app.i18n.toggle()">
+                        <i class="fa-solid fa-language"></i> <span id="langText">عربي</span>
+                    </button>
+                    
+                    <div class="user-profile-header">
+                        <div class="avatar-container small" onclick="app.profile.triggerUpload()">
+                            <div class="avatar x-small" id="headerAvatar">U</div>
+                            <div class="avatar-overlay"><i class="fa-solid fa-camera"></i></div>
+                        </div>
+                        <div class="user-meta-header">
+                            <span class="user-name" id="headerName">Name</span>
+                        </div>
+                    </div>
+
+                    <button class="logout-btn icon-btn" onclick="app.auth.logout()" title="Logout">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </header>
+
+            <div class="dashboard-content" id="mainView">
+                <!-- Content injected here -->
+            </div>
+
+            <!-- Pharmacy Section (Injected via JS but structure here for reference) -->
+            <div id="pharmacySearchSection" class="dashboard-content hidden">
+                <div class="content-header">
+                    <div>
+                        <h1 class="page-title">Find Nearby Pharmacies</h1>
+                        <p class="text-muted">Discover pharmacies in your city or based on your location.</p>
+                    </div>
+                    <button class="btn secondary-btn" onclick="app.pharmacy.useLocation()">
+                        <i class="fa-solid fa-location-crosshairs"></i> Use My Location
+                    </button>
+                </div>
+                <div class="card mb-4">
+                    <div class="form-row">
+                        <div class="form-group" style="flex:1;">
+                            <input type="text" id="pharmacyCityInput" placeholder="Enter city name...">
+                        </div>
+                        <button class="btn primary-btn" onclick="app.pharmacy.search()">Search</button>
+                    </div>
+                </div>
+                <div id="pharmacyResults" class="content-grid">
+                    <!-- Results mapping here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <input type="file" id="profilePicInput" class="hidden" accept="image/*" onchange="app.profile.handleUpload(event)">
+    <input type="file" id="prescriptionFileInput" class="hidden" accept="image/*,application/pdf" onchange="app.clinical.handlePrescriptionFile(event)">
+    
+    <!-- Camera Modal -->
+    <div id="cameraModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="card glass">
+                <div class="card-header">
+                    <h2 data-i18n="capture_rx">Capture Prescription</h2>
+                    <button class="btn icon-btn" onclick="app.ui.hideCamera()"><i class="fa-solid fa-times"></i></button>
+                </div>
+                <div style="background:#000; border-radius:12px; overflow:hidden; position:relative; aspect-ratio:4/3; display:flex; align-items:center; justify-content:center;">
+                    <video id="cameraVideo" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+                    <canvas id="cameraCanvas" class="hidden"></canvas>
+                </div>
+                <div class="text-center mt-3" style="display:flex; justify-content:center; gap:12px;">
+                    <button class="btn secondary-btn" onclick="app.ui.hideCamera()" data-i18n="cancel">Cancel</button>
+                    <button class="btn primary-btn" onclick="app.clinical.captureImage()"><i class="fa-solid fa-camera"></i> <span data-i18n="capture">Capture</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+Login Error at 2026-02-26T22:37:44.572Z:
+Error: WHERE parameter "phone" has invalid "undefined" value
+    at SQLiteQueryGenerator.whereItemQuery (C:\Users\elbatol\OneDrive\سطح المكتب\2026-2-24\node_modules\sequelize\lib\dialects\abstract\query-generator.js:1746:13)
+    at C:\Users\elbatol\OneDrive\سطح المكتب\2026-2-24\node_modules\sequelize\lib\dialects\abstract\query-generator.js:1737:25
+    at Array.forEach (<anonymous>)
+    at SQLiteQueryGenerator.whereItemsQuery (C:\Users\elbatol\OneDrive\سطح المكتب\2026-2-24\node_modules\sequelize\lib\dialects\abstract\query-generator.js:1735:35)
+    at C:\Users\elbatol\OneDrive\سطح المكتب\2026-2-24\node_modules\sequelize\lib\dialects\abstract\query-generator.js:1843:30
+    at Array.map (<anonymous>)
+    at SQLiteQueryGenerator._whereGroupBind (C:\Users\elbatol\OneDrive\سطح المكتب\2026-2-24\node_modules\sequelize\lib\dialects\abstract\query-generator.js:1842:21)
+    at SQLiteQueryGenerator.whereItemQuery (C:\Users\elbatol\OneDrive\سطح المكتب\2026-2-24\node_modules\sequelize\lib\dialects\abstract\query-generator.js:1793:19)
+    at C:\Users\elbatol\OneDrive\سطح المكتب\2026-2-24\node_modules\sequelize\lib\dialects\abstract\query-generator.js:1737:25
+    at Array.forEach (<anonymous>)
+
