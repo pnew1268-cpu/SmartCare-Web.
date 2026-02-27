@@ -43,6 +43,9 @@ app.use('/api/admin',    require('./routes/admin'));
 app.use('/api/messages',      require('./routes/messages'));
 app.use('/api/notifications', require('./routes/notifications'));
 
+// Ping endpoint to verify server status
+app.get('/api/ping', (req, res) => res.json({ status: 'ok', time: new Date() }));
+
 // ────────────────────────────────────────────────
 // SPA fallback & API 404
 // ────────────────────────────────────────────────
@@ -91,7 +94,7 @@ const User = require('./models/User');
 const Notification = require('./models/Notification');
 
 sequelize.authenticate()
-    .then(() => sequelize.sync()) // Fresh DB, sync normally
+    .then(() => sequelize.sync({ alter: true })) // Force schema updates if columns are missing
 
     .then(async () => {
         // Seed simple users for development if missing

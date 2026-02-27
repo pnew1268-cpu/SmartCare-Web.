@@ -111,7 +111,16 @@ const app = {
 
         try {
             const response = await fetch(targetUrl, options);
-            const data = await response.json();
+            const contentType = response.headers.get("content-type");
+            
+            let data;
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                data = await response.json();
+            } else {
+                const text = await response.text();
+                console.error('[API] Non-JSON Response received:', text.substring(0, 200));
+                throw new Error(`Server returned non-JSON response (${response.status}). Check backend status.`);
+            }
             
             if (!response.ok) {
                 if (response.status === 401) {
@@ -125,10 +134,41 @@ const app = {
             return data;
         } catch (err) {
             console.error('[API] Fetch Error:', err);
-            const msg = err.name === 'TypeError' && err.message === 'Failed to fetch' 
+            const msg = err.name === 'SyntaxError' ? 'Server returned invalid JSON. Check backend logs.' : (err.name === 'TypeError' && err.message === 'Failed to fetch' 
                 ? 'Could not connect to server. Ensure backend is running.' 
-                : err.message;
+                : err.message);
             app.ui.toast(msg, 'error');
+            throw err;
+        }
+    },
+
+    apiUpload: async (endpoint, formData) => {
+        const token = localStorage.getItem('mr_token');
+        const headers = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        let baseUrl = '/api';
+        if (window.location.protocol === 'file:') baseUrl = 'http://127.0.0.1:5000/api';
+        else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            if (window.location.port !== '5000') baseUrl = `http://${window.location.hostname}:5000/api`;
+        } else if (window.location.port && window.location.port !== '5000') {
+            baseUrl = `${window.location.protocol}//${window.location.hostname}:5000/api`;
+        }
+        
+        const targetUrl = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
+
+        try {
+            const res = await fetch(targetUrl, { method: 'POST', headers, body: formData });
+            const contentType = res.headers.get("content-type");
+            if (!contentType || contentType.indexOf("application/json") === -1) {
+                const text = await res.text();
+                throw new Error(`Upload failed (${res.status}). Server returned non-JSON.`);
+            }
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.msg || data.message || 'Upload failed');
+            return data;
+        } catch (err) {
+            app.ui.toast(err.message, 'error');
             throw err;
         }
     },
@@ -191,15 +231,12 @@ const app = {
             formData.append('file', file);
 
             try {
-                // In demo mode this returns a placeholder URL via the mock
-                const { url } = await app.api('/users/upload', 'POST', { filename: file.name });
-                await app.api('/users/profile', 'PUT', { profilePic: url });
-                app.user.profilePic = url;
+                const data = await app.apiUpload('/users/upload', formData);
+                await app.api('/users/profile', 'PUT', { profilePic: data.url });
+                app.user.profilePic = data.url;
                 app.profile.updateDisplay();
                 app.ui.toast("Avatar updated", "success");
-            } catch (err) {
-                app.ui.toast("Upload failed", "error");
-            }
+            } catch (err) { }
         },
         updateDisplay() {
             const headerAvatar = document.getElementById('headerAvatar');
@@ -255,13 +292,21 @@ const app = {
 
             try {
                 const updates = {};
-                if (cvFile) updates.cvUrl = await uploadFile(cvFile);
-                if (certFile) updates.certificatesUrls = [await uploadFile(certFile)]; // Simplified for now
+                if (cvFile) {
+                    const formData = new FormData();
+                    formData.append('file', cvFile);
+                    updates.cvUrl = (await app.apiUpload('/users/upload', formData)).url;
+                }
+                if (certFile) {
+                    const formData = new FormData();
+                    formData.append('file', certFile);
+                    updates.certificatesUrls = [(await app.apiUpload('/users/upload', formData)).url];
+                }
                 
                 await app.api('/users/profile', 'PUT', updates);
                 app.ui.toast("Documents synced", "success");
                 app.ui.renderProfile();
-            } catch (err) { app.ui.toast("Upload failed", "error"); }
+            } catch (err) { }
         }
     },
 
@@ -882,15 +927,8 @@ const app = {
                 formData.append('file', file);
 
                 try {
-                    let baseUrl = '/api';
-                    if (window.location.protocol === 'file:') baseUrl = 'http://127.0.0.1:5000/api';
-                    else if (window.location.port && window.location.port !== '5000') baseUrl = `${window.location.protocol}//${window.location.hostname}:5000/api`;
-                    const res = await fetch(`${baseUrl}/users/upload`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${localStorage.getItem('mr_token')}` },
-                        body: formData
-                    });
-                    const { url } = await res.json();
+                    const data = await app.apiUpload('/users/upload', formData);
+                    const url = data.url;
                     
                     const isDoc = app.user.activeRole === 'doctor';
                     const patientId = isDoc ? app.currentPatient.id : app.user.id;
@@ -917,16 +955,8 @@ const app = {
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
             try {
-                let baseUrl = '/api';
-                if (window.location.protocol === 'file:') baseUrl = 'http://127.0.0.1:5000/api';
-                else if (window.location.port && window.location.port !== '5000') baseUrl = `${window.location.protocol}//${window.location.hostname}:5000/api`;
-                const res = await fetch(`${baseUrl}/users/upload`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('mr_token')}` },
-                    body: formData
-                });
-                const { url } = await res.json();
-                await app.api('/users/apply', 'POST', { docUrl: url });
+                const data = await app.apiUpload('/users/upload', formData);
+                await app.api('/users/apply', 'POST', { docUrl: data.url });
                 app.ui.toast("Application submitted", "success");
                 app.ui.renderPatientDashboard();
             } catch (err) {}
@@ -993,14 +1023,10 @@ const app = {
             if (fileInput?.files.length) {
                 const formData = new FormData();
                 formData.append('file', fileInput.files[0]);
-                const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:5000/api' : '/api';
-                const res = await fetch(`${baseUrl}/users/upload`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('mr_token')}` },
-                    body: formData
-                });
-                const data = await res.json();
-                fileUrl = data.url;
+                try {
+                    const data = await app.apiUpload('/users/upload', formData);
+                    fileUrl = data.url;
+                } catch (err) { return; }
             }
             try {
                 await app.api('/clinical/prescribe', 'POST', { patientId: app.currentPatient.id, medications: meds, notes, fileUrl });
