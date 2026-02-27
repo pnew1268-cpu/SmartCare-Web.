@@ -3,8 +3,8 @@ const app = {
     lang: 'en',
     currentChatPartner: null,
     currentPatient: null, 
-    // Auto-detect Demo Mode if on GitHub Pages or local file
-    isDemoMode: (window.location.hostname.includes('github.io') || window.location.protocol === 'file:' || true), 
+    // Forced Demo Mode for GitHub Pages and Static Deployment
+    isDemoMode: true, 
     
     mockData: {
         users: {
@@ -131,7 +131,7 @@ const app = {
         if (app.isDemoMode) {
             return new Promise((resolve, reject) => {
                 setTimeout(() => {
-                    try { resolve(this.mockApi(endpoint, method, body)); }
+                    try { resolve(app.mockApi(endpoint, method, body)); }
                     catch (err) { reject(err); }
                 }, 400); // Simulate network lag
             });
