@@ -3,7 +3,8 @@ const app = {
     lang: 'en',
     currentChatPartner: null,
     currentPatient: null, 
-    isDemoMode: true, // Always ON for GitHub Pages/Static deployment
+    // Auto-detect Demo Mode if on GitHub Pages or local file
+    isDemoMode: (window.location.hostname.includes('github.io') || window.location.protocol === 'file:' || true), 
     
     mockData: {
         users: {
@@ -127,7 +128,7 @@ const app = {
         const options = { method, headers };
         if (body && method !== 'GET') options.body = JSON.stringify(body);
 
-        if (this.isDemoMode) {
+        if (app.isDemoMode) {
             return new Promise((resolve, reject) => {
                 setTimeout(() => {
                     try { resolve(this.mockApi(endpoint, method, body)); }
@@ -380,29 +381,19 @@ const app = {
             
             if (!cvFile && !certFile) return app.ui.toast("Select a file to upload", "info");
 
-            const uploadFile = async (file) => {
-                const formData = new FormData();
-                formData.append('file', file);
-                const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:5000/api' : '/api';
-                const res = await fetch(`${baseUrl}/users/upload`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('mr_token')}` },
-                    body: formData
-                });
-                return (await res.json()).url;
-            };
-
             try {
                 const updates = {};
                 if (cvFile) {
                     const formData = new FormData();
                     formData.append('file', cvFile);
-                    updates.cvUrl = (await app.apiUpload('/users/upload', formData)).url;
+                    const data = await app.apiUpload('/users/upload', formData);
+                    updates.licenseIdUrl = data.url; // Use as primary doc
                 }
                 if (certFile) {
                     const formData = new FormData();
                     formData.append('file', certFile);
-                    updates.certificatesUrls = [(await app.apiUpload('/users/upload', formData)).url];
+                    const data = await app.apiUpload('/users/upload', formData);
+                    updates.certificatesUrls = [data.url];
                 }
                 
                 await app.api('/users/profile', 'PUT', updates);
