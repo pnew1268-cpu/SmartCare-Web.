@@ -2,7 +2,25 @@ const app = {
     user: null,
     lang: 'en',
     currentChatPartner: null,
-    currentPatient: null, // Only used by doctor
+    currentPatient: null, 
+    isDemoMode: true, // Always ON for GitHub Pages/Static deployment
+    
+    mockData: {
+        users: {
+            '12345678901234': { id: '12345678901234', name: 'Demo Patient', phone: '01012345678', email: 'patient@demo.com', roles: ['patient'], activeRole: 'patient', city: 'Cairo', governorate: 'Cairo' },
+            'admin001': { id: 'admin001', name: 'Demo Admin', phone: '0000000000', email: 'admin@demo.com', roles: ['admin'], activeRole: 'admin' },
+            'doctor001': { id: 'doctor001', name: 'Dr. Sarah Wilson', phone: '01212345678', email: 'sarah@demo.com', roles: ['doctor'], activeRole: 'doctor', specialization: 'Cardiology', clinicAddress: '123 Clinic St, Cairo', contactInfo: '01212345678' }
+        },
+        prescriptions: [
+            { id: 101, patientId: '12345678901234', doctorId: 'doctor001', medications: 'Aspirin 81mg', date: new Date().toISOString(), notes: 'Daily after breakfast' },
+            { id: 102, patientId: '12345678901234', doctorId: 'doctor001', medications: 'Vitamin D3', date: new Date(Date.now() - 86400000).toISOString(), notes: 'Once per week' }
+        ],
+        appointments: [],
+        messages: [],
+        notifications: [
+            { id: 1, userId: '12345678901234', title: 'Welcome', message: 'Welcome to MedRecord Demo!', read: false, createdAt: new Date().toISOString() }
+        ]
+    },
 
     translations: {
         en: {
@@ -109,6 +127,15 @@ const app = {
         const options = { method, headers };
         if (body && method !== 'GET') options.body = JSON.stringify(body);
 
+        if (this.isDemoMode) {
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    try { resolve(this.mockApi(endpoint, method, body)); }
+                    catch (err) { reject(err); }
+                }, 400); // Simulate network lag
+            });
+        }
+
         try {
             const response = await fetch(targetUrl, options);
             const contentType = response.headers.get("content-type");
@@ -142,7 +169,82 @@ const app = {
         }
     },
 
+    mockApi: function(endpoint, method, body) {
+        console.log(`[DEMO-API] ${method} ${endpoint}`, body);
+        
+        // 1. AUTH
+        if (endpoint.includes('/auth/login')) {
+            const user = this.mockData.users[body.loginId] || this.mockData.users['12345678901234'];
+            return { token: 'demo-token', user: { ...user } };
+        }
+        if (endpoint.includes('/auth/register')) {
+            const newUser = { ...body, roles: ['patient'], activeRole: 'patient' };
+            this.mockData.users[body.id] = newUser;
+            return { msg: 'Demo registration successful', phone: body.phone };
+        }
+
+        // 2. USER PROFILE & SEARCH
+        if (endpoint.includes('/users/doctors')) {
+            return Object.values(this.mockData.users).filter(u => u.roles.includes('doctor'));
+        }
+        if (endpoint.includes('/users/pharmacies')) {
+            return [
+                { id: 1, name: 'Demo Pharmacy Alpha', address: '45 Nile St, Cairo', phone: '01000000001', city: 'Cairo' },
+                { id: 2, name: 'Demo Pharmacy Beta', address: '88 Horus Ave, Giza', phone: '01000000002', city: 'Giza' }
+            ];
+        }
+        if (endpoint.includes('/users/profile')) {
+            const userId = (endpoint.includes('?id=')) ? endpoint.split('id=')[1] : this.user.id;
+            const u = this.mockData.users[userId];
+            if (!u) return { msg: 'User not found' };
+            if (method === 'GET') return { ...u };
+            if (method === 'PUT') {
+                Object.assign(this.mockData.users[this.user.id], body);
+                return this.mockData.users[this.user.id];
+            }
+        }
+
+        // 3. CLINICAL
+        if (endpoint.includes('/clinical/prescriptions')) {
+            if (method === 'GET') return this.mockData.prescriptions.filter(r => r.patientId === (app.user.activeRole === 'patient' ? app.user.id : app.currentPatient?.id));
+            if (method === 'POST') {
+                const newRx = { id: Date.now(), ...body, date: new Date().toISOString(), doctorId: this.user.id };
+                this.mockData.prescriptions.unshift(newRx);
+                return newRx;
+            }
+        }
+        if (endpoint.includes('/clinical/appointments')) {
+            if (method === 'GET') return this.mockData.appointments;
+            if (method === 'POST') {
+                const newApt = { id: Date.now(), ...body, status: 'pending', createdAt: new Date().toISOString() };
+                this.mockData.appointments.unshift(newApt);
+                return newApt;
+            }
+        }
+
+        // 4. MESSAGES / NOTIFS
+        if (endpoint.includes('/notifications')) return this.mockData.notifications;
+        if (endpoint.includes('/messages')) {
+            if (method === 'GET') return this.mockData.messages;
+            if (method === 'POST') {
+                const newMsg = { id: Date.now(), ...body, senderId: this.user.id, createdAt: new Date().toISOString() };
+                this.mockData.messages.push(newMsg);
+                return newMsg;
+            }
+        }
+
+        return { msg: 'Endpoint mocked' };
+    },
+
     apiUpload: async (endpoint, formData) => {
+        if (app.isDemoMode) {
+            // Mock file upload by returning a placeholder or a data URL (simulated)
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve({ url: 'https://via.placeholder.com/300?text=Uploaded+Document' });
+                }, 800);
+            });
+        }
         const token = localStorage.getItem('mr_token');
         const headers = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
