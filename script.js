@@ -914,6 +914,24 @@ const app = {
             } catch (err) {}
         },
 
+        toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.classList.toggle('open');
+                const overlay = document.getElementById('sidebarOverlay');
+                if (overlay) overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+            }
+        },
+
+        closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.classList.remove('open');
+                const overlay = document.getElementById('sidebarOverlay');
+                if (overlay) overlay.style.display = 'none';
+            }
+        },
+
         async renderAdminPanel() {
             try {
                 const apps = await app.api('/admin/applications');
