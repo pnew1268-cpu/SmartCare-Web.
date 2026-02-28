@@ -51,6 +51,14 @@ body {
 
 .hidden { display: none !important; }
 
+/* ensure media don't overflow their containers */
+img, video, canvas, iframe { max-width: 100%; height: auto; display: block; }
+
+/* make form rows wrap by default */
+.form-row { display: flex; gap: 20px; flex-wrap: wrap; }
+.form-group.half { flex: 1 1 45%; }
+
+
 /* ── Layout System ───────────────────────────────────────── */
 
 /* Auth Layout */
@@ -380,13 +388,15 @@ input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px
     background: var(--bg-main);
     padding: 0 15px;
     border-radius: 30px;
-    width: 320px;
+    width: 100%;
+    max-width: 320px;
     border: 1px solid var(--border);
 }
 
 .search-bar i { color: var(--text-muted); font-size: 14px; }
-.search-bar input { background: transparent; border: none; padding: 10px; font-size: 13px; box-shadow: none; width: 160px; }
+.search-bar input { background: transparent; border: none; padding: 10px; font-size: 13px; box-shadow: none; flex: 1; width: auto; }
 .search-bar button { padding: 6px 14px; border-radius: 20px; font-size: 12px; }
+
 
 .hamburger { display: none; background: transparent; border: none; font-size: 20px; color: var(--text-main); cursor: pointer; }
 /* Header Profile */
@@ -513,11 +523,15 @@ input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px
     .sidebar.open { transform: translateX(0); box-shadow: 20px 0 50px rgba(0,0,0,0.2); }
     [dir="rtl"] .sidebar.open { box-shadow: -20px 0 50px rgba(0,0,0,0.2); }
     
+    /* take full width when sidebar collapses */
     .main-content { margin-left: 0 !important; margin-right: 0 !important; }
     .top-header { margin: 10px; padding: 0 15px; top: 10px; }
     .dashboard-content { padding: 0 15px 15px; }
     
-    .search-bar { width: 100%; margin-top: 10px; } 
+    /* make search bar fluid and inputs adapt */
+    .search-bar { width: 100%; max-width: 320px; margin-top: 10px; }
+    .search-bar input { flex: 1; width: auto; }
+
     .header-left { flex-direction: column; align-items: flex-start; width: 100%; gap: 10px; }
     .top-header { height: auto; padding: 15px; }
 
@@ -550,6 +564,17 @@ input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px
     .user-meta-header { display: none; }
     .avatar.large { width: 100px; height: 100px; }
 }
+
+/* extra tweaks for very small phones */
+@media (max-width: 480px) {
+    .auth-box { padding: 20px; }
+    .page-title { font-size: 24px; }
+    .top-header { padding: 10px; margin: 5px; }
+    .dashboard-content { padding: 0 10px 10px; }
+    .search-bar { max-width: none; }
+    .btn { padding: 10px 16px; font-size: 13px; }
+}
+
 
 /* ── Animations ──────────────────────────────────────────── */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
